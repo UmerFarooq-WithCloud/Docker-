@@ -1,0 +1,50 @@
+networks:
+    mern-net:
+      driver: bridge
+
+volumes:
+    mongodata:
+      driver: local
+
+services:
+  frontend:
+    container_name: front
+    build: ./mern/frontend
+    ports:
+      - "5173:5173"
+    networks:
+      - mern-net
+    environment:
+      VITE_API_URL: http://localhost:5050
+    depends_on:
+      - backend
+
+  backend:
+    container_name: backend
+    build: ./mern/backend 
+    ports:
+      - "5050:5050"
+    networks:
+      - mern-net 
+    environment:
+      mongo_url: mongodb://mongodb:27017/mydatabase
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: on-failure
+
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    networks:
+      - mern-net 
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
